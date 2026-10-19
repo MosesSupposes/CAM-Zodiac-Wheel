@@ -13,6 +13,10 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build:elm": "elm make src/Main.elm --output=elm.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@astrologer/ephemera": "^0.4.1"
   }
 }

@@ -152,7 +152,8 @@
       pointer-events: none;
     }
 
-    .seg .sp {
+    .seg .sp,
+    .zseg .sp {
       fill: var(--el);
       fill-opacity: 0.16;
       transition: fill-opacity 0.25s;
@@ -246,6 +247,21 @@
       fill: var(--muted);
     }
 
+    .core-sparkle {
+      fill: var(--accent);
+      font-family: var(--glyph);
+      font-size: 18px;
+      text-anchor: middle;
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: twinkle 3.2s ease-in-out infinite;
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.5; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.08); }
+    }
+
     .pointer {
       fill: var(--accent);
     }
@@ -306,6 +322,13 @@
       color: var(--muted);
     }
 
+    .welcome-message {
+      color: var(--accent);
+      font-family: var(--display);
+      font-size: 17px;
+      font-weight: 600;
+    }
+
     .small {
       font-size: 15px;
     }
@@ -354,11 +377,17 @@
     }
 
     select,
+    input,
     textarea {
+      display: block;
+      width: 100%;
+      min-width: 0;
       background: var(--bg);
       border: 1px solid var(--line);
       border-radius: 10px;
       padding: 10px 12px;
+      color: inherit;
+      font: inherit;
     }
 
     textarea {
@@ -369,6 +398,7 @@
     }
 
     select:focus-visible,
+    input:focus-visible,
     textarea:focus-visible,
     button:focus-visible {
       outline: 3px solid var(--accent);
@@ -385,10 +415,7 @@
 
     .row>div {
       flex: 1 1 140px;
-    }
-
-    .row select {
-      width: 100%;
+      min-width: 0;
     }
 
     button {
@@ -406,6 +433,29 @@
       background: var(--accent);
       color: var(--on);
       border-color: var(--accent);
+    }
+
+    .insights-launcher {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 18px;
+      border-color: var(--accent);
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .insights-launcher-mark,
+    .insights-launcher-arrow {
+      color: var(--accent);
+    }
+
+    .insights-launcher-arrow {
+      transition: transform 0.2s ease;
+    }
+
+    .insights-launcher:hover .insights-launcher-arrow {
+      transform: translate(2px, -2px);
     }
 
     button:hover {
@@ -573,9 +623,8 @@
     <section class="panel" id="panel">
       <!-- Setup view -->
       <div id="setup">
-        <h1>Find your place on the wheel</h1>
-        <p>Pick your birthday. Your sun sign becomes house 1, and the other eleven follow it around the wheel. Spin
-          through them to see what each one asks of you.</p>
+        <h1>Set up your natal wheel</h1>
+        <p>Enter your birth details, then choose a house system and zodiac for your chart.</p>
         <div class="row">
           <div>
             <label for="month">Month</label>
@@ -585,19 +634,65 @@
             <label for="day">Day</label>
             <select id="day"></select>
           </div>
+          <div>
+            <label for="year">Year</label>
+            <input id="year" type="number" min="1550" max="2650" step="1" required inputmode="numeric">
+          </div>
+          <div>
+            <label for="birthTime">Time of birth</label>
+            <input id="birthTime" type="time" required>
+          </div>
+          <div>
+            <label for="personName">Your name</label>
+            <input id="personName" type="text" maxlength="48" autocomplete="name" placeholder="Optional">
+          </div>
         </div>
-        <button class="primary" id="go" type="button">Spin my wheel</button>
+        <div class="row">
+          <div>
+            <label for="utcOffset">UTC offset (hours)</label>
+            <input id="utcOffset" type="number" min="-12" max="14" step="0.25" value="-5" required>
+          </div>
+          <div>
+            <label for="latitude">Birth latitude</label>
+            <input id="latitude" type="number" min="-90" max="90" step="0.0001" value="40.8448" required>
+          </div>
+          <div>
+            <label for="longitude">Birth longitude</label>
+            <input id="longitude" type="number" min="-180" max="180" step="0.0001" value="-73.8648" required>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="houseSystem">House system</label>
+            <select id="houseSystem">
+              <option value="placidus">Placidus</option>
+              <option value="wholeSign">Whole Sign</option>
+            </select>
+          </div>
+          <div>
+            <label for="zodiacMode">Zodiac</label>
+            <select id="zodiacMode">
+              <option value="tropical">Tropical</option>
+              <option value="sidereal">Sidereal (Lahiri)</option>
+            </select>
+          </div>
+        </div>
+        <button class="primary" id="go" type="button">Calculate chart</button>
         <p style="margin:16px 0 0"><a class="text-link" href="#/journal">View reflections</a></p>
-        <p class="small muted" style="margin-top:18px">This uses solar houses, so no birth time or place is needed. A
-          full birth chart needs both. Treat what you read here as prompts for reflection, not predictions.</p>
+        <p class="small muted" style="margin-top:18px">Use the UTC offset that applied at your birthplace on your birth date.
+          New York on August 27, 1998 used daylight time (UTC−4); fixed EST is UTC−5. Times near a sign boundary can
+          change the Ascendant.</p>
       </div>
 
       <!-- House view -->
       <div id="house" hidden>
+        <p id="welcomeMessage" class="welcome-message"></p>
         <div id="hChip" class="chip"></div>
         <h2><span class="num" id="hNum"></span><span id="hTitle"></span></h2>
         <p id="hAbout"></p>
         <p id="hSign"></p>
+        <p id="hPlacements" class="small muted"></p>
+        <p id="hCusp" class="small muted"></p>
         <blockquote class="ask" id="hAsk"></blockquote>
         <label for="note">Your reflection</label>
         <textarea id="note" placeholder="Write what comes up. It's saved on this device only."></textarea>
@@ -609,9 +704,10 @@
           </div>
         </div>
         <div class="footer-row">
-          <button type="button" class="link small" id="change">Change birthday</button>
+          <button type="button" class="link small" id="change">Edit chart details</button>
           <a class="text-link" href="#/journal">All reflections</a>
         </div>
+        <div id="chartInsightsLauncher"></div>
       </div>
     </section>
   </main>
@@ -627,13 +723,28 @@
   </main>
   <div class="sr" id="status" role="status" aria-live="polite"></div>
 
+  <script src="./elm.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
-  <script>
+  <script type="module">
+    import { createEphemera, Ayanamsa, Body, HouseSystem } from "./node_modules/@astrologer/ephemera/index.mjs";
+    import {
+      daysInMonth,
+      houseIndexAtRelativeAngle,
+      houseSectorCenter,
+      houseSectorInterval,
+      localDateTimeToUtcParts,
+      MAX_EPHEMERIS_YEAR,
+      MIN_EPHEMERIS_YEAR,
+      normalizeBirth,
+      normalizeStoredState,
+      wholeSignCusps
+    } from "./src/chart-utils.mjs";
+
+    const ephemeris = await createEphemera();
     (function () {
       "use strict";
 
       /* ================= DATA ================= */
-      const HOUSE_SYSTEM = (prev = "Placidus".toUpperCase()) => prev.toUpperCase() === "PLACIDUS" ? "Whole Sign" : "Placidus"
       const VS = "\uFE0E"; // force text (not emoji) presentation for zodiac glyphs
       const SIGNS = [
         {name: "Aries", glyph: "\u2648" + VS, element: "fire", style: "act first and refine later"},
@@ -668,20 +779,11 @@
       const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
       const DAYS_IN = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
-      // [first key, last key, sign index]; key = month*100 + day
-      const RANGES = [
-        [120, 218, 10], [219, 320, 11], [321, 419, 0], [420, 520, 1], [521, 620, 2], [621, 722, 3],
-        [723, 822, 4], [823, 922, 5], [923, 1022, 6], [1023, 1121, 7], [1122, 1221, 8]
-      ];
-      function sunSign(m, d) {
-        const k = m * 100 + d;
-        for (const [lo, hi, idx] of RANGES) if (k >= lo && k <= hi) return idx;
-        return 9; // Capricorn: Dec 22 to Jan 19
-      }
-
       /* ================= STATE + STORAGE ================= */
       const STORE_KEY = "zodiac-wheel:v1";
-      const state = {start: null, birth: null, rot: 0, active: -1, visited: new Set(), notes: {}, noteDates: {}};
+      const state = {start: null, chart: null, birth: null, rot: 0, active: -1, visited: new Set(), notes: {}, noteDates: {}, soundEnabled: true};
+      let audioContext = null;
+      let spinAudio = null;
 
       function load() {
         try {return JSON.parse(localStorage.getItem(STORE_KEY)) || null;} catch (e) {return null;}
@@ -689,17 +791,203 @@
       function save() {
         try {
           localStorage.setItem(STORE_KEY, JSON.stringify({
-            birth: state.birth, visited: Array.from(state.visited), notes: state.notes, noteDates: state.noteDates
+            birth: state.birth,
+            chart: state.chart
+              ? {
+                name: state.birth ? state.birth.name : "",
+                houseSystem: state.chart.houseSystem,
+                zodiacMode: state.chart.zodiacMode,
+                angles: { ascendant: state.chart.angles.ascendant },
+                cusps: state.chart.cusps,
+                placements: state.chart.placements.map(({ name, longitude, houseIndex }) => ({ name, longitude, house: houseIndex + 1 }))
+              }
+              : null,
+            visited: Array.from(state.visited),
+            notes: state.notes,
+            noteDates: state.noteDates
           }));
         } catch (e) { /* storage unavailable: the app still works for this session */}
       }
 
+      function emitChartEvent(name, detail) {
+        document.dispatchEvent(new CustomEvent(name, { detail }));
+      }
+
+      function prepareAudio() {
+        const AudioContextType = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextType) return null;
+        if (!audioContext) audioContext = new AudioContextType();
+        if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
+        return audioContext;
+      }
+
+      function playChime(frequency, { duration = 0.8, volume = 0.025, delay = 0, type = "sine" } = {}) {
+        if (!state.soundEnabled) return;
+        const context = prepareAudio();
+        if (!context) return;
+        const now = context.currentTime + delay;
+        const oscillator = context.createOscillator();
+        const overtone = context.createOscillator();
+        const filter = context.createBiquadFilter();
+        const gain = context.createGain();
+        const overtoneGain = context.createGain();
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(frequency, now);
+        overtone.type = "sine";
+        overtone.frequency.setValueAtTime(frequency * 2.756, now);
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(Math.min(9000, frequency * 12), now);
+        filter.frequency.exponentialRampToValueAtTime(Math.min(5000, frequency * 5), now + duration);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(volume, now + 0.025);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+        overtoneGain.gain.setValueAtTime(0.0001, now);
+        overtoneGain.gain.exponentialRampToValueAtTime(volume * 0.24, now + 0.035);
+        overtoneGain.gain.exponentialRampToValueAtTime(0.0001, now + duration * 0.78);
+        oscillator.connect(filter);
+        filter.connect(gain);
+        overtone.connect(overtoneGain);
+        gain.connect(context.destination);
+        overtoneGain.connect(context.destination);
+        oscillator.start(now);
+        overtone.start(now);
+        oscillator.stop(now + duration + 0.03);
+        overtone.stop(now + duration + 0.03);
+        gain.gain.setValueAtTime(0.0001, now + duration + 0.04);
+        overtoneGain.gain.setValueAtTime(0.0001, now + duration + 0.04);
+        oscillator.onended = () => {
+          oscillator.disconnect();
+          overtone.disconnect();
+          filter.disconnect();
+          gain.disconnect();
+          overtoneGain.disconnect();
+        };
+      }
+
+      function startSpinSound(velocity) {
+        if (!state.soundEnabled) return;
+        const context = prepareAudio();
+        if (!context) return;
+        stopSpinSound();
+        const now = context.currentTime;
+        const oscillator = context.createOscillator();
+        const shimmer = context.createOscillator();
+        const filter = context.createBiquadFilter();
+        const shimmerFilter = context.createBiquadFilter();
+        const gain = context.createGain();
+        const shimmerGain = context.createGain();
+        const speed = Math.min(1, Math.abs(velocity) / 240);
+        const baseFrequency = 174 + speed * 90;
+        oscillator.type = "triangle";
+        oscillator.frequency.setValueAtTime(baseFrequency, now);
+        oscillator.frequency.linearRampToValueAtTime(baseFrequency + speed * 42, now + 0.16);
+        shimmer.type = "sine";
+        shimmer.frequency.setValueAtTime(baseFrequency * 2.01, now);
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(500 + speed * 2600, now);
+        filter.Q.setValueAtTime(0.7 + speed * 1.6, now);
+        shimmerFilter.type = "bandpass";
+        shimmerFilter.frequency.setValueAtTime(2800 + speed * 1800, now);
+        shimmerFilter.Q.setValueAtTime(1.2, now);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.linearRampToValueAtTime(0.007 + speed * 0.009, now + 0.12);
+        shimmerGain.gain.setValueAtTime(0.0001, now);
+        shimmerGain.gain.linearRampToValueAtTime(0.002 + speed * 0.004, now + 0.2);
+        oscillator.connect(filter);
+        shimmer.connect(shimmerFilter);
+        filter.connect(gain);
+        shimmerFilter.connect(shimmerGain);
+        gain.connect(context.destination);
+        shimmerGain.connect(context.destination);
+        oscillator.start(now);
+        shimmer.start(now);
+        spinAudio = { oscillator, shimmer, filter, shimmerFilter, gain, shimmerGain };
+      }
+
+      function updateSpinSound(velocity) {
+        if (!spinAudio || !audioContext || audioContext.state !== "running") return;
+        const now = audioContext.currentTime;
+        const speed = Math.min(1, Math.abs(velocity) / 240);
+        const baseFrequency = 174 + speed * 90;
+        spinAudio.oscillator.frequency.setTargetAtTime(baseFrequency, now, 0.055);
+        spinAudio.shimmer.frequency.setTargetAtTime(baseFrequency * 2.01, now, 0.07);
+        spinAudio.filter.frequency.setTargetAtTime(500 + speed * 2600, now, 0.06);
+        spinAudio.gain.gain.setTargetAtTime(0.0001 + speed * 0.016, now, 0.045);
+        spinAudio.shimmerGain.gain.setTargetAtTime(0.0001 + speed * 0.006, now, 0.055);
+      }
+
+      function stopSpinSound() {
+        if (!spinAudio || !audioContext) return;
+        const context = audioContext;
+        const sound = spinAudio;
+        spinAudio = null;
+        const now = context.currentTime;
+        sound.gain.gain.cancelScheduledValues(now);
+        sound.shimmerGain.gain.cancelScheduledValues(now);
+        sound.gain.gain.setTargetAtTime(0.0001, now, 0.09);
+        sound.shimmerGain.gain.setTargetAtTime(0.0001, now, 0.1);
+        sound.oscillator.stop(now + 0.45);
+        sound.shimmer.stop(now + 0.45);
+        let endedSources = 0;
+        const releaseGraph = () => {
+          endedSources += 1;
+          if (endedSources === 2) {
+            sound.oscillator.disconnect();
+            sound.shimmer.disconnect();
+            sound.filter.disconnect();
+            sound.shimmerFilter.disconnect();
+            sound.gain.disconnect();
+            sound.shimmerGain.disconnect();
+          }
+        };
+        sound.oscillator.onended = releaseGraph;
+        sound.shimmer.onended = releaseGraph;
+      }
+
+      function playHouseChime(houseIndex) {
+        const tonic = 392 * Math.pow(2, houseIndex / 24);
+        playChime(tonic, { duration: 0.72, volume: 0.018 });
+        playChime(tonic * 1.5, { duration: 1.05, volume: 0.009, delay: 0.045 });
+      }
+
+      function playLandingChord(houseIndex) {
+        const tonic = 261.63 * Math.pow(2, houseIndex / 24);
+        [1, 1.25, 1.5, 2].forEach((ratio, index) => {
+          playChime(tonic * ratio, {
+            duration: 1.1 + index * 0.12,
+            volume: 0.012 / (index + 1),
+            delay: index * 0.035
+          });
+        });
+      }
+
       /* ================= HELPERS ================= */
       const $ = (id) => document.getElementById(id);
+      $("year").min = String(MIN_EPHEMERIS_YEAR);
+      $("year").max = String(MAX_EPHEMERIS_YEAR);
       const mod = (n, m) => ((n % m) + m) % m;
       const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const dur = (ms) => (reduceMotion ? 0 : ms);
-      const signFor = (houseIdx) => SIGNS[mod((state.start == null ? 0 : state.start) + houseIdx, 12)];
+      const ascendant = () => state.chart ? state.chart.angles.ascendant : 0;
+      const relativeLongitude = (longitude) => mod(longitude - ascendant(), 360);
+      const pointAt = (radius, longitude) => {
+        const angle = rad(-relativeLongitude(longitude));
+        return [radius * Math.sin(angle), -radius * Math.cos(angle)];
+      };
+      const currentCusps = () => state.chart ? state.chart.cusps : d3.range(12).map((i) => i * 30);
+      const cuspInterval = (houseIndex) => houseSectorInterval(houseIndex, currentCusps(), ascendant());
+      const houseAtLongitude = (longitude) => houseIndexAtRelativeAngle(longitude, currentCusps(), ascendant());
+      const houseAtTop = () => houseAtLongitude(state.rot);
+      const houseCenter = (houseIndex) => houseSectorCenter(houseIndex, currentCusps(), ascendant());
+      const houseSign = (houseIndex) => {
+        const longitude = mod(ascendant() + houseCenter(houseIndex), 360);
+        return SIGNS[Math.floor(longitude / 30)];
+      };
+      const formatLongitude = (longitude) => {
+        const split = ephemeris.splitLongitude(longitude);
+        const sign = SIGNS[split.sign];
+        return `${Math.floor(split.degrees)}°${String(Math.floor(split.minutes)).padStart(2, "0")}′ ${sign.name}`;
+      };
 
       /* ================= WHEEL ================= */
       const svg = d3.select("#wheel");
@@ -714,28 +1002,46 @@
 
       function build() {
         wheelG.selectAll("*").remove();
+        const zodiac = wheelG.selectAll("g.zseg").data(d3.range(12)).join("g")
+          .attr("class", "zseg")
+          .style("--el", (i) => `var(--${SIGNS[i].element})`);
+
+        zodiac.append("path").attr("class", "sp")
+          .attr("d", (i) => {
+            const start = mod(i * 30 - ascendant(), 360);
+            return signArc({startAngle: rad(-(start + 30)), endAngle: rad(-start)});
+          });
+        zodiac.append("text").attr("class", "lbl sg")
+          .attr("data-x", (i) => pointAt(268, i * 30 + 15)[0])
+          .attr("data-y", (i) => pointAt(268, i * 30 + 15)[1])
+          .text((i) => SIGNS[i].glyph);
+        zodiac.append("text").attr("class", "lbl sn")
+          .attr("data-x", (i) => pointAt(234, i * 30 + 15)[0])
+          .attr("data-y", (i) => pointAt(234, i * 30 + 15)[1])
+          .text((i) => SIGNS[i].name);
+
         const segs = wheelG.selectAll("g.seg").data(d3.range(12)).join("g")
           .attr("class", "seg")
-          .style("--el", (i) => `var(--${signFor(i).element})`);
+          .style("--el", (i) => `var(--${houseSign(i).element})`);
 
-        segs.append("path").attr("class", "sp")
-          .attr("d", (i) => signArc({startAngle: rad(-i * 30 - 15), endAngle: rad(-i * 30 + 15)}));
         segs.append("path").attr("class", "hp")
-          .attr("d", (i) => houseArc({startAngle: rad(-i * 30 - 15), endAngle: rad(-i * 30 + 15)}));
+          .attr("d", (i) => {
+            const [start, end] = cuspInterval(i);
+            return houseArc({startAngle: rad(-end), endAngle: rad(-start)});
+          });
 
-        const addLabel = (cls, r, text) => segs.append("text")
-          .attr("class", "lbl " + cls)
-          .attr("data-x", (i) => polar(r, i)[0])
-          .attr("data-y", (i) => polar(r, i)[1])
-          .text((i) => text(i));
-
-        addLabel("sg", 268, (i) => signFor(i).glyph);
-        addLabel("sn", 234, (i) => signFor(i).name);
-        addLabel("hn", 177, (i) => i + 1);
-        addLabel("hl", 150, (i) => HOUSES[i].short);
+        segs.append("text").attr("class", "lbl hn")
+          .attr("data-x", (i) => pointAt(177, mod(ascendant() + houseCenter(i), 360))[0])
+          .attr("data-y", (i) => pointAt(177, mod(ascendant() + houseCenter(i), 360))[1])
+          .text((i) => i + 1);
+        segs.append("text").attr("class", "lbl hl")
+          .attr("data-x", (i) => pointAt(150, mod(ascendant() + houseCenter(i), 360))[0])
+          .attr("data-y", (i) => pointAt(150, mod(ascendant() + houseCenter(i), 360))[1])
+          .text((i) => HOUSES[i].short);
 
         segs.append("circle").attr("class", "dot").attr("r", 3.5)
-          .attr("cx", (i) => polar(195, i)[0]).attr("cy", (i) => polar(195, i)[1]);
+          .attr("cx", (i) => pointAt(195, mod(ascendant() + houseCenter(i), 360))[0])
+          .attr("cy", (i) => pointAt(195, mod(ascendant() + houseCenter(i), 360))[1]);
 
         buildCore();
         render(true);
@@ -744,12 +1050,13 @@
 
       function buildCore() {
         core.selectAll("*").remove();
-        const s = state.start == null ? null : SIGNS[state.start];
+        const s = state.chart ? SIGNS[Math.floor(state.chart.angles.ascendant / 30)] : null;
         core.append("circle").attr("class", "core-disc").attr("r", CORE_R)
           .style("stroke", s ? `var(--${s.element})` : "var(--line)");
         core.append("text").attr("class", "core-glyph").attr("y", -8).text(s ? s.glyph : "?");
+        core.append("text").attr("class", "core-sparkle").attr("x", -78).attr("y", -48).text("✦");
         core.append("text").attr("class", "core-cap").attr("y", 62)
-          .text(s ? `Sun in ${s.name}` : "Pick your birthday");
+          .text(state.chart ? `${formatLongitude(state.chart.angles.ascendant)} rising` : "Enter birth details");
       }
 
       function render(force) {
@@ -757,11 +1064,23 @@
         wheelG.selectAll(".lbl").attr("transform", function () {
           return `translate(${this.dataset.x},${this.dataset.y}) rotate(${-state.rot})`;
         });
-        const idx = mod(Math.round(state.rot / 30), 12);
+        const idx = houseAtTop();
         if (force || idx !== state.active) {
+          const previousHouse = state.active;
           state.active = idx;
           wheelG.selectAll(".seg").classed("on", (i) => i === idx);
-          if (state.start != null) showHouse(idx);
+          if (state.chart) {
+            showHouse(idx);
+            if (previousHouse >= 0 && previousHouse !== idx) {
+              playHouseChime(idx);
+              emitChartEvent("zodiac:house-change", {
+                house: idx + 1,
+                cusp: state.chart.cusps[idx],
+                houseSystem: state.chart.houseSystem,
+                zodiacMode: state.chart.zodiacMode
+              });
+            }
+          }
         }
       }
 
@@ -772,29 +1091,71 @@
 
       function spinTo(target, ms) {
         svg.interrupt("spin");
+        if (state.soundEnabled) prepareAudio();
+        const currentRotation = state.rot;
+        const duration = dur(ms == null ? 650 : ms);
+        const initialVelocity = duration > 0 ? ((target - currentRotation) / duration) * 1.6 : 0;
+        startSpinSound(initialVelocity);
+        emitChartEvent("zodiac:wheel-spin-start", {
+          fromHouse: state.active + 1,
+          toHouse: houseAtLongitude(target) + 1,
+          houseSystem: state.chart && state.chart.houseSystem,
+          zodiacMode: state.chart && state.chart.zodiacMode
+        });
+        if (reduceMotion) {
+          state.rot = target;
+          render();
+          settle();
+          return;
+        }
         svg.transition("spin")
-          .duration(dur(ms == null ? 650 : ms))
+          .duration(duration)
           .ease(d3.easeCubicOut)
           .tween("rot", () => {
-            const f = d3.interpolateNumber(state.rot, target);
-            return (t) => {state.rot = f(t); render();};
+            const f = d3.interpolateNumber(currentRotation, target);
+            let previousT = 0;
+            let previousRotation = currentRotation;
+            return (t) => {
+              const nextRotation = f(t);
+              const elapsed = (t - previousT) * duration;
+              if (elapsed > 0) updateSpinSound(((nextRotation - previousRotation) / elapsed) * 1000);
+              previousT = t;
+              previousRotation = nextRotation;
+              state.rot = nextRotation;
+              render();
+            };
           })
-          .on("end", settle);
+          .on("end", () => settle());
       }
 
-      function settle() {
-        state.rot = Math.round(state.rot / 30) * 30;
+      function settle(snapToCenter = true, emitSpinEnd = true) {
+        stopSpinSound();
+        const idx = houseAtTop();
+        if (snapToCenter) {
+          const target = houseCenter(idx);
+          state.rot = target + 360 * Math.round((state.rot - target) / 360);
+        }
         render();
-        if (state.start == null) return;
-        state.visited.add(state.active);
+        if (!state.chart) return;
+        state.visited.add(idx);
         refreshVisited();
         save();
-        const s = signFor(state.active);
-        $("status").textContent = `House ${state.active + 1}, ${HOUSES[state.active].short}, in ${s.name}`;
+        $("status").textContent = `House ${idx + 1}, cusp ${formatLongitude(state.chart.cusps[idx])}`;
+        if (emitSpinEnd) {
+          playLandingChord(idx);
+          emitChartEvent("zodiac:wheel-spin-end", {
+            house: idx + 1,
+            cusp: state.chart.cusps[idx],
+            houseSystem: state.chart.houseSystem,
+            zodiacMode: state.chart.zodiacMode
+          });
+        }
       }
 
       function go(delta) {
-        spinTo(Math.round(state.rot / 30) * 30 + delta * 30);
+        const next = mod(state.active + delta, 12);
+        const target = houseCenter(next);
+        spinTo(target + 360 * Math.round((state.rot - target) / 360));
       }
 
       /* ----- drag, flick, and click ----- */
@@ -809,8 +1170,10 @@
         d3.drag()
           .on("start", (e) => {
             svg.interrupt("spin");
+            if (state.soundEnabled) prepareAudio();
             const p = pointerInfo(e);
-            drag = {startP: p, last: p.deg, acc: 0, rot0: state.rot, samples: [{t: performance.now(), rot: state.rot}]};
+            drag = {startP: p, last: p.deg, acc: 0, rot0: state.rot, lastTime: performance.now(), samples: [{t: performance.now(), rot: state.rot}]};
+            startSpinSound(0);
           })
           .on("drag", (e) => {
             if (!drag) return;
@@ -820,8 +1183,12 @@
             if (d < -180) d += 360;
             drag.acc += d;
             drag.last = p.deg;
+            const now = performance.now();
+            const elapsed = now - drag.lastTime;
+            if (elapsed > 0) updateSpinSound((d / elapsed) * 1000);
+            drag.lastTime = now;
             state.rot = drag.rot0 + drag.acc;
-            drag.samples.push({t: performance.now(), rot: state.rot});
+            drag.samples.push({t: now, rot: state.rot});
             if (drag.samples.length > 5) drag.samples.shift();
             render();
           })
@@ -833,22 +1200,24 @@
               // treat as a click on a house
               const p = d.startP;
               if (p.r > CORE_R && p.r < 300) {
-                const i = mod(Math.round(-(p.deg - state.rot) / 30), 12);
-                spinTo(i * 30 + 360 * Math.round((state.rot - i * 30) / 360));
+                const longitudeAtPointer = mod(state.rot - p.deg, 360);
+                const i = houseAtLongitude(longitudeAtPointer);
+                const target = houseCenter(i);
+                spinTo(target + 360 * Math.round((state.rot - target) / 360));
               } else {
-                settle();
+                settle(true, false);
               }
               return;
             }
             const a = d.samples[0], b = d.samples[d.samples.length - 1];
             const v = b.t > a.t ? (b.rot - a.rot) / (b.t - a.t) : 0; // degrees per ms
             const projected = state.rot + Math.max(-90, Math.min(90, v * 220));
-            spinTo(Math.round(projected / 30) * 30, 900);
+            spinTo(projected, 900);
           })
       );
 
       svg.on("keydown", (event) => {
-        if (state.start == null) return;
+        if (!state.chart) return;
         const next = ["ArrowRight", "ArrowDown", "PageDown"];
         const prev = ["ArrowLeft", "ArrowUp", "PageUp"];
         if (next.includes(event.key)) {event.preventDefault(); go(1);}
@@ -857,20 +1226,29 @@
 
       /* ================= PANEL ================= */
       function showHouse(i) {
-        // TODO: add a way to change the house system, and then update this indicator accordingly
-        // set the house system to either placidus or whole sign
-        // $('span[data-house_system]').(document.createTextNode.apply(document.createElement("span"), `${HOUSE_SYSTEM ?? "Default: Placidus"}`));
-
-        const h = HOUSES[i], s = signFor(i);
+        const h = HOUSES[i];
+        const cusp = state.chart.cusps[i];
+        const s = SIGNS[Math.floor(cusp / 30)];
+        const placements = state.chart.placements.filter((placement) => placement.houseIndex === i);
+        const name = state.birth.name;
+        $("welcomeMessage").textContent = name ? `A little sky, just for ${name}.` : "A little sky, made just for you.";
         $("hChip").style.setProperty("--el", `var(--${s.element})`);
         $("hChip").innerHTML = "";
         const g = document.createElement("span");
         g.className = "g"; g.textContent = s.glyph;
-        $("hChip").append(g, document.createTextNode(`${s.name}, a ${s.element} sign`));
+        $("hChip").append(g, document.createTextNode(`${s.name} on the cusp`));
         $("hNum").textContent = i + 1;
         $("hTitle").textContent = h.title;
         $("hAbout").textContent = h.about;
-        $("hSign").textContent = `With ${s.name} here, you tend to ${s.style}.`;
+        const houseSystemName = state.chart.houseSystem === "wholeSign" ? "Whole Sign" : "Placidus";
+        const zodiacName = state.chart.zodiacMode === "sidereal" ? "Sidereal (Lahiri)" : "Tropical";
+        $("hSign").textContent = `${houseSystemName} cusp: ${formatLongitude(cusp)} (${zodiacName}).`;
+        $("hPlacements").textContent = placements.length
+          ? placements.map((placement) => `${placement.name}: ${placement.sign} (${formatLongitude(placement.longitude)})`).join(" · ")
+          : "No calculated placements in this house.";
+        $("hCusp").textContent = state.chart.fallback
+          ? `${houseSystemName} is undefined at this latitude; Porphyry cusps are shown instead.`
+          : `House ${i + 1} cusp at ${formatLongitude(cusp)}.`;
         $("hAsk").textContent = h.ask;
         $("note").value = state.notes[i] || "";
       }
@@ -926,7 +1304,9 @@
             title.textContent = `House ${houseIndex + 1}: ${HOUSES[houseIndex].title}`;
             const sign = document.createElement("div");
             sign.className = "journal-sign small";
-            sign.textContent = `With ${signFor(houseIndex).name}`;
+            sign.textContent = state.chart
+              ? `Cusp in ${SIGNS[Math.floor(state.chart.cusps[houseIndex] / 30)].name}`
+              : "House cusp unavailable";
             const prompt = document.createElement("blockquote");
             prompt.textContent = HOUSES[houseIndex].ask;
             const reflection = document.createElement("p");
@@ -966,60 +1346,189 @@
         $("month").innerHTML = MONTHS.map((m, i) => `<option value="${i + 1}">${m}</option>`).join("");
       }
       function fillDays() {
-        const max = DAYS_IN[Number($("month").value) - 1];
+        const month = Number($("month").value);
+        const year = Number($("year").value);
+        const max = daysInMonth(year, month) || DAYS_IN[month - 1];
         const keep = Number($("day").value) || 1;
         $("day").innerHTML = d3.range(1, max + 1).map((d) => `<option value="${d}">${d}</option>`).join("");
         $("day").value = String(Math.min(keep, max));
       }
       $("month").addEventListener("change", fillDays);
+      $("year").addEventListener("input", fillDays);
 
       function showSetup() {
         $("house").hidden = true;
         $("setup").hidden = false;
         svg.classed("idle", true).attr("tabindex", "-1");
         state.start = null;
+        state.chart = null;
         state.active = -1;
         state.rot = 0;
         build();
       }
 
-      function startWheel(m, d, withIntro) {
-        state.birth = {m, d};
-        state.start = sunSign(m, d);
+      function calculateChart(birth) {
+        const utc = localDateTimeToUtcParts(birth.y, birth.m, birth.d, birth.t, birth.utcOffset);
+        const julian = ephemeris.utcToJd(
+          utc.year,
+          utc.month,
+          utc.day,
+          utc.hour,
+          utc.minute
+        );
+        if (!julian) throw new Error("The birth date or time could not be converted to UTC.");
+
+        const selectedHouseSystem = birth.houseSystem === "wholeSign" ? HouseSystem.WholeSign : HouseSystem.Placidus;
+        const houseInfo = ephemeris.housesInfo(julian.jdUt, birth.longitude, birth.latitude, selectedHouseSystem);
+        if (!houseInfo) throw new Error("Placidus houses could not be calculated for these coordinates.");
+
+        const tropicalAngles = ephemeris.houseAngles(julian.jdUt, birth.longitude, birth.latitude);
+        const ayanamsa = birth.zodiacMode === "sidereal"
+          ? ephemeris.ayanamsa(Ayanamsa.Lahiri, julian.jdTt)
+          : 0;
+        const toChartLongitude = (longitude) => mod(longitude - ayanamsa, 360);
+        const angles = {
+          ...tropicalAngles,
+          ascendant: toChartLongitude(tropicalAngles.ascendant),
+          mc: toChartLongitude(tropicalAngles.mc)
+        };
+        const cusps = birth.houseSystem === "wholeSign"
+          ? wholeSignCusps(angles.ascendant)
+          : houseInfo.cusps.map(toChartLongitude);
+        const placements = [
+          ["Sun", Body.Sun],
+          ["Moon", Body.Moon],
+          ["Mean Lilith", Body.MeanLilith]
+        ].map(([name, body]) => {
+          const position = ephemeris.position(body, julian.jdUt, { year: birth.y });
+          if (!position) return null;
+          const longitude = toChartLongitude(position.longitude);
+          const sign = ephemeris.splitLongitude(longitude);
+          return {
+            name,
+            longitude,
+            sign: SIGNS[sign.sign].name,
+            houseIndex: mod(Math.floor(ephemeris.housePosition(cusps, longitude)) - 1, 12)
+          };
+        }).filter(Boolean);
+
+        return {
+          jdUt: julian.jdUt,
+          cusps,
+          angles,
+          placements,
+          fallback: houseInfo.fallback,
+          houseSystem: birth.houseSystem,
+          zodiacMode: birth.zodiacMode,
+          ayanamsa
+        };
+      }
+
+      function startWheel(birth, withIntro) {
+        svg.interrupt("spin");
+        const normalizedBirth = normalizeBirth(birth, DEFAULT_BIRTH);
+        const chart = calculateChart(normalizedBirth);
+        state.birth = normalizedBirth;
+        state.chart = chart;
+        state.start = Math.floor(state.chart.angles.ascendant / 30);
         $("setup").hidden = true;
         $("house").hidden = false;
         svg.classed("idle", false).attr("tabindex", "0");
-        state.rot = withIntro ? -360 : 0;
+        state.rot = 0;
+        state.active = -1;
         build();
-        if (withIntro) spinTo(0, 1600); else settle();
+        emitChartEvent("zodiac:chart-ready", {
+          houseSystem: state.chart.houseSystem,
+          zodiacMode: state.chart.zodiacMode,
+          ascendant: state.chart.angles.ascendant,
+          cusps: state.chart.cusps.slice(),
+          placements: state.chart.placements.map(({ name, longitude, houseIndex }) => ({ name, longitude, house: houseIndex + 1 }))
+        });
+        settle(true, false);
         save();
         if (withIntro) svg.node().focus({preventScroll: true});
       }
 
       $("go").addEventListener("click", () => {
-        startWheel(Number($("month").value), Number($("day").value), true);
+        const fields = ["year", "birthTime", "utcOffset", "latitude", "longitude"];
+        if (!fields.every((field) => $(field).reportValidity()) || !$("month").reportValidity() || !$("day").reportValidity()) return;
+        try {
+          startWheel({
+            m: Number($("month").value),
+            d: Number($("day").value),
+            y: Number($("year").value),
+            t: $("birthTime").value,
+            name: $("personName").value,
+            utcOffset: Number($("utcOffset").value),
+            latitude: Number($("latitude").value),
+            longitude: Number($("longitude").value),
+            houseSystem: $("houseSystem").value,
+            zodiacMode: $("zodiacMode").value
+          }, true);
+        } catch (error) {
+          $("status").textContent = error.message;
+        }
       });
       $("change").addEventListener("click", showSetup);
 
       /* ================= INIT ================= */
+      const DEFAULT_BIRTH = {
+        m: 8,
+        d: 27,
+        y: 1998,
+        t: "05:00",
+        name: "",
+        utcOffset: -5,
+        latitude: 40.8448,
+        longitude: -73.8648,
+        houseSystem: "placidus",
+        zodiacMode: "tropical"
+      };
+
       fillMonths();
+      $("month").value = String(DEFAULT_BIRTH.m);
+      $("year").value = String(DEFAULT_BIRTH.y);
+      $("birthTime").value = DEFAULT_BIRTH.t;
+      $("personName").value = DEFAULT_BIRTH.name;
+      $("utcOffset").value = String(DEFAULT_BIRTH.utcOffset);
+      $("latitude").value = String(DEFAULT_BIRTH.latitude);
+      $("longitude").value = String(DEFAULT_BIRTH.longitude);
+      $("houseSystem").value = DEFAULT_BIRTH.houseSystem;
+      $("zodiacMode").value = DEFAULT_BIRTH.zodiacMode;
       fillDays();
-      const saved = load();
-      if (saved) {
-        if (saved.visited) state.visited = new Set(saved.visited.filter((n) => Number.isInteger(n) && n >= 0 && n < 12));
-        if (saved.notes && typeof saved.notes === "object") state.notes = saved.notes;
-        if (saved.noteDates && typeof saved.noteDates === "object") state.noteDates = saved.noteDates;
-      }
-      if (saved && saved.birth && saved.birth.m >= 1 && saved.birth.m <= 12) {
-        $("month").value = String(saved.birth.m);
+      const saved = normalizeStoredState(load());
+      state.visited = new Set(saved.visited);
+      state.notes = saved.notes;
+      state.noteDates = saved.noteDates;
+      try {
+        if (!saved || !saved.birth) throw new Error("No saved birth details.");
+        const birth = normalizeBirth(saved.birth, DEFAULT_BIRTH);
+        $("month").value = String(birth.m);
+        $("year").value = String(birth.y);
+        $("birthTime").value = birth.t;
+        $("personName").value = birth.name;
+        $("utcOffset").value = String(birth.utcOffset);
+        $("latitude").value = String(birth.latitude);
+        $("longitude").value = String(birth.longitude);
+        $("houseSystem").value = birth.houseSystem;
+        $("zodiacMode").value = birth.zodiacMode;
         fillDays();
-        $("day").value = String(saved.birth.d);
-        startWheel(saved.birth.m, saved.birth.d, false);
-      } else {
+        $("day").value = String(birth.d);
+        startWheel(birth, false);
+      } catch (error) {
         build();
+        if (saved && saved.birth) $("status").textContent = "Saved birth details were invalid. Please review the chart inputs.";
       }
       renderRoute();
     })();
+
+    const insightsLauncher = window.Elm.Main.init({
+      node: document.getElementById("chartInsightsLauncher"),
+      flags: { mode: "launcher" }
+    });
+    insightsLauncher.ports.openDetailsPage.subscribe((path) => {
+      window.location.href = path;
+    });
   </script>
 </body>
 
