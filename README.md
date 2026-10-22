@@ -4,15 +4,16 @@ An interactive natal chart and reflection journal. The browser frontend uses the
 
 ## Run
 
-Install dependencies with `npm install`, then serve this directory over HTTP. For example:
+Install dependencies with `npm install`, then start the local server:
 
 ```sh
-npm run build:elm
-python3 -m http.server 8000
+npm run dev
 ```
 
-Open `http://localhost:8000/Your%20zodiac%20wheel.html`.
-The wheel's **Explore my chart** button opens `chart-insights.html` as its own page.
+Open the URL printed by Vite. The wheel is served at `/`, and the wheel's **Explore my chart** button opens `/chart-insights.html` as its own page. Both pages run under the same server and origin.
+
+For a production build, run `npm run build`. Vite builds both pages into `dist/`, bundles the browser dependencies, and includes the Elm and WebAssembly runtime files. Netlify uses the same command and publishes `dist/`, as configured in `netlify.toml`.
+
 The Elm frontend is a `Browser.element`: it mounts into `#chartInsightsLauncher` on the wheel page and into `#chartDetails` on the standalone page. Rebuild it after changing Elm with `npm run build:elm`.
 
 Run regression tests with:

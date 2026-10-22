@@ -14,9 +14,15 @@
   "main": "index.js",
   "scripts": {
     "build:elm": "elm make src/Main.elm --output=elm.js",
+    "dev": "npm run build:elm && vite --host 127.0.0.1",
+    "build": "npm run build:elm && vite build",
     "test": "node --test"
   },
   "dependencies": {
     "@astrologer/ephemera": "^0.4.1"
+  },
+  "devDependencies": {
+    "netlify-cli": "^27.14.1",
+    "vite": "^6.4.5"
   }
 }
